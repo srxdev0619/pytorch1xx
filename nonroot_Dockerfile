@@ -1,0 +1,74 @@
+ # modify `https://github.com/pytorch/pytorch/blob/v0.3.1/Dockerfile` to install pytorch correctly
+
+
+FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu16.04
+
+#RUN echo "deb http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64 /" > /etc/apt/sources.list.d/nvidia-ml.list
+RUN apt-get update && apt-get install -y --no-install-recommends \
+         build-essential \
+         cmake \
+         git \
+         curl \
+         vim \
+         ca-certificates \
+         libjpeg-dev \
+         libpng-dev &&\
+     rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update
+RUN apt-get install sudo
+# RUN useradd -ms /bin/bash shahrukh
+RUN adduser --disabled-password --gecos '' shahrukh
+RUN adduser shahrukh sudo
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+USER shahrukh
+
+ENV PYTHON_VERSION=3.7.5
+RUN curl -o ~/miniconda.sh -O https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
+    chmod +x ~/miniconda.sh && \
+    sudo ~/miniconda.sh -b -p /home/shahrukh/conda && \
+    rm ~/miniconda.sh #&& \
+
+
+RUN /home/shahrukh/conda/bin/conda install -y python=$PYTHON_VERSION numpy pyyaml scipy ipython mkl mkl-include cython typing jupyter pandas gensim scikit-learn matplotlib seaborn hdf5 #&& \
+RUN /home/shahrukh/conda/bin/conda install -y -c magma-cuda100 #&& \
+RUN /home/shahrukh/conda/bin/conda clean -ya
+ENV PATH /home/shahrukh/conda/bin:$PATH
+RUN sudo chown -R 1000:1000 /home/shahrukh/.conda/
+RUN sudo chown -R 1000:1000 /home/shahrukh
+RUN conda install -c conda-forge ninja
+# This must be done before pip so that requirements.txt is available
+WORKDIR /opt/pytorch
+COPY . .
+
+RUN git submodule update --init
+#RUN TORCH_CUDA_ARCH_LIST="3.5 5.2 6.0 6.1+PTX" TORCH_NVCC_FLAGS="-Xfatbin -compress-all" \
+#    CMAKE_PREFIX_PATH="$(dirname $(which conda))/../" \
+#    pip install -v .
+
+RUN conda install pytorch torchvision cudatoolkit=10.0 -c pytorch
+#RUN git clone https://github.com/pytorch/vision.git && cd vision && pip install -v .
+
+#RUN pip install --upgrade pip
+
+#RUN pip install -U tensorflow
+
+#RUN pip install tensorboardX
+
+RUN conda install scikit-learn
+
+RUN conda install scikit-image
+
+RUN conda install -c anaconda tensorflow-gpu
+
+RUN conda install -c conda-forge tensorboardx
+
+RUN sudo apt update && sudo apt install -y libsm6 libxext6
+
+
+#RUN conda install -c conda-forge opencv
+
+#RUN conda install -c conda-forge dlib
+
+WORKDIR /workspace
+RUN sudo chmod -R a+w /workspace 
